@@ -6,12 +6,15 @@ three dots), deals three cards, and turns into each card as you flip it — its
 shape, its face, its colour, its move. All 22 major arcana are the same ball,
 frozen mid-state by the engine; there is not a single image on the page.
 
+Live: https://bloub-tarot.alan996.workers.dev
+
 ## Run it
 
 ```bash
 pnpm install
 pnpm dev        # http://localhost:5192
 pnpm build      # tsc --noEmit && vite build
+pnpm deploy     # build + wrangler deploy (Cloudflare Workers static assets)
 ```
 
 `bloub-react` is linked from `../bloub-react` until it is on npm.
