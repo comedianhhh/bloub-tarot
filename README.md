@@ -17,7 +17,11 @@ pnpm build      # tsc --noEmit && vite build
 pnpm deploy     # build + wrangler deploy (Cloudflare Workers static assets)
 ```
 
-`bloub-react` is linked from `../bloub-react` until it is on npm.
+`bloub-react` is linked from `../bloub-react` until it is on npm: clone
+[comedianhhh/bloub-react](https://github.com/comedianhhh/bloub-react) next to this folder first.
+
+`pnpm og` regenerates `public/og.svg` from the engine; `public/og.png` is that
+SVG drawn on a 1200×630 canvas in the browser (`scripts/og.mjs` explains).
 
 ## The reading
 
