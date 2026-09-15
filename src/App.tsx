@@ -1,8 +1,9 @@
 import { defaultCycle } from 'bloub-react'
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { CardBack, CardFace } from './Card'
-import { drawThree, POSITIONS, type Drawn } from './cards'
+import { drawThree, type Drawn } from './cards'
 import { downloadBlob, spreadToPng } from './export'
+import { STRINGS, useLang, type Lang } from './i18n'
 import { divine } from './oracle'
 import { REST, Seer, type SeerLook } from './Seer'
 import { useTheme } from './theme'
@@ -28,10 +29,12 @@ function useScript() {
 
 export default function App() {
   const theme = useTheme()
+  const { lang, t, setLang } = useLang()
   const { later, clear } = useScript()
   const [phase, setPhase] = useState<Phase>('closed')
   const [asking, setAsking] = useState(false)
-  const [question, setQuestion] = useState('这份申请会有回音吗？')
+  const [question, setQuestion] = useState(t.defaultQuestion)
+  const [touched, setTouched] = useState(false)
   const [say, setSay] = useState('')
   const [look, setLook] = useState<SeerLook>({ ...REST, state: 'sleep', follow: false })
   const [hand, setHand] = useState<Drawn[]>([])
@@ -50,6 +53,12 @@ export default function App() {
   const stageRef = useRef<HTMLDivElement>(null)
 
   const patch = (p: Partial<SeerLook>) => setLook((l) => ({ ...l, ...p }))
+  const switchLang = (l: Lang) => {
+    setLang(l)
+    if (!touched) setQuestion(STRINGS[l].defaultQuestion)
+    // a finished reading is re-spoken in the new language (a new roll, same cards)
+    if (Array.isArray(reading)) setReading(divine(l, question, hand))
+  }
   const askOn = () => {
     setAsking(true)
     later(() => {
@@ -66,7 +75,7 @@ export default function App() {
     later(() => patch({ state: 'wide' }), 1500)
     later(() => {
       patch({ state: 'idle', follow: true })
-      setSay('……晚上好。')
+      setSay(t.greeting)
     }, 2400)
     later(() => {
       patch({ state: 'notify' })
@@ -84,12 +93,12 @@ export default function App() {
     setPhase('open')
     setSay(`"${question.trim() || '……'}"`)
     patch({ ...REST, state: 'thinking', follow: false })
-    later(() => setSay('嗯……'), 1200)
+    later(() => setSay(t.thinking), 1200)
     later(() => {
       patch({ state: 'notify' })
       setHand(drawThree())
       setPhase('cards')
-      setSay('三张。翻一张。')
+      setSay(t.dealt)
     }, 3600)
     later(() => patch({ state: 'idle', follow: true }), 5200)
   }
@@ -102,7 +111,7 @@ export default function App() {
     setOpened(next)
     clear()
     patch({ state: 'wide', cycle: null, follow: false })
-    setSay(`${POSITIONS[k]}：${c.zh}${h.reversed ? '，逆位' : ''}……`)
+    setSay(t.reveal(t.positions[k]!, lang === 'zh' ? c.zh : c.en, h.reversed))
     // it becomes the card: its shape, its face, its colour, its move
     later(() => patch({ shape: c.shape, expression: c.expr, color: c.color, state: h.reversed && c.react !== 'alert' ? 'thinking' : c.react }), 700)
     later(() => patch({ state: 'idle', follow: true }), 3100)
@@ -111,10 +120,10 @@ export default function App() {
 
     if (next.every(Boolean)) {
       setReading('loading')
-      const lines = divine(question, hand)
+      const lines = divine(lang, question, hand)
       lines.forEach((_, i) => later(() => setReading(lines.slice(0, i + 1)), 3400 + i * 1100))
       later(() => {
-        setSay('就这些。往下看。')
+        setSay(t.done)
         setPhase('done')
       }, 3200)
       later(() => patch({ cycle: MONTAGE }), 7000)
@@ -136,12 +145,12 @@ export default function App() {
     const faces = [...document.querySelectorAll<SVGSVGElement>('.face.front .card-svg')]
     if (faces.length !== 3) return
     try {
-      const blob = await spreadToPng(question, hand, faces, theme)
+      const blob = await spreadToPng(question, hand, faces, theme, lang, t)
       setSheet({ url: URL.createObjectURL(blob), blob })
       patch({ state: 'wink', cycle: null })
       later(() => patch({ state: 'idle' }), 1800)
     } catch {
-      setSay('导出失败了，再试一次。')
+      setSay(t.exportFailed)
     }
   }
 
@@ -149,9 +158,9 @@ export default function App() {
     if (!sheet) return
     try {
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': sheet.blob })])
-      setCopied('已复制')
+      setCopied(t.copied)
     } catch {
-      setCopied('复制不了，右键图片另存为')
+      setCopied(t.copyFailed)
     }
   }
 
@@ -164,7 +173,13 @@ export default function App() {
         <h1>
           @bloub<span className="dot">.</span>tarot
         </h1>
-        <span>一个问题，三张牌</span>
+        <span>
+          {t.tagline}
+          <span className="lang" role="group" aria-label="Language">
+            <button type="button" className={lang === 'en' ? 'on' : ''} onClick={() => switchLang('en')}>EN</button>
+            <button type="button" className={lang === 'zh' ? 'on' : ''} onClick={() => switchLang('zh')}>中文</button>
+          </span>
+        </span>
       </header>
 
       <div className={stageClass} data-phase={phase} ref={stageRef}>
@@ -175,10 +190,20 @@ export default function App() {
           <div className="line">{say}</div>
 
           <form className="bubble" onSubmit={ask}>
-            <p>你今天想问什么？</p>
+            <p>{t.askPrompt}</p>
             <div className="row">
-              <input ref={inputRef} value={question} onChange={(e) => setQuestion(e.target.value)} maxLength={120} aria-label="你的问题" autoComplete="off" />
-              <button type="submit">问它</button>
+              <input
+                ref={inputRef}
+                value={question}
+                onChange={(e) => {
+                  setQuestion(e.target.value)
+                  setTouched(true)
+                }}
+                maxLength={120}
+                aria-label={t.askPrompt}
+                autoComplete="off"
+              />
+              <button type="submit">{t.askButton}</button>
             </div>
           </form>
 
@@ -189,7 +214,7 @@ export default function App() {
                 className={`flip${opened[k] ? ' open' : ''}`}
                 role="button"
                 tabIndex={0}
-                aria-label={`翻开${POSITIONS[k]}这张牌`}
+                aria-label={t.positions[k]}
                 onClick={() => reveal(k)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
@@ -218,10 +243,10 @@ export default function App() {
         <div className="curtain l" />
         <div className="curtain r" />
         <div className="marquee">
-          <h2>bloub 塔罗</h2>
-          <small>今晚的占卜师：一个黑球</small>
+          <h2>{t.marqueeTitle}</h2>
+          <small>{t.marqueeSub}</small>
           <button type="button" onClick={openCurtain}>
-            拉开幕布
+            {t.openCurtain}
           </button>
         </div>
       </div>
@@ -232,20 +257,20 @@ export default function App() {
             opened[k] ? (
               <div key={k}>
                 <b>
-                  {POSITIONS[k]} · {h.card.zh}
-                  {h.reversed && <span className="rev"> 逆位</span>}
+                  {t.positions[k]} · {lang === 'zh' ? h.card.zh : h.card.en}
+                  {h.reversed && <span className="rev"> {t.reversed}</span>}
                 </b>
                 <span>
-                  {h.card.text}
-                  {h.reversed && <span className="rev"> 逆位——把这句话反过来听。</span>}
+                  {h.card.text[lang]}
+                  {h.reversed && <span className="rev"> {t.reversedNote}</span>}
                 </span>
               </div>
             ) : null
           )}
-          {reading === 'loading' && <p className="bloub-says muted">bloub 想了想……</p>}
+          {reading === 'loading' && <p className="bloub-says muted">{t.bloubThinks}</p>}
           {Array.isArray(reading) && (
             <div className="bloub-says">
-              <b>bloub 说：</b>
+              <b>{t.bloubSays}</b>
               {reading.map((line, i) => (
                 <p key={i}>{line}</p>
               ))}
@@ -257,10 +282,10 @@ export default function App() {
       {phase === 'done' && (
         <div className="after">
           <button type="button" onClick={again}>
-            再问一个
+            {t.again}
           </button>
           <button type="button" className="quiet" onClick={exportPng}>
-            导出为图片
+            {t.save}
           </button>
         </div>
       )}
@@ -268,25 +293,26 @@ export default function App() {
       {sheet && (
         <div className="sheet" onClick={(e) => e.target === e.currentTarget && setSheet(null)}>
           <div>
-            <img src={sheet.url} alt="三张牌的合影" />
+            <img src={sheet.url} alt="" />
             <div className="row">
               <button type="button" onClick={() => downloadBlob(sheet.blob, 'bloub-tarot.png')}>
-                下载 PNG
+                {t.download}
               </button>
               <button type="button" className="quiet" onClick={copyPng}>
-                {copied ?? '复制到剪贴板'}
+                {copied ?? t.copy}
               </button>
               <button type="button" className="quiet" onClick={() => setSheet(null)}>
-                关闭
+                {t.close}
               </button>
-              <span className="hint">或者右键 / 长按图片另存为。</span>
+              <span className="hint">{t.saveHint}</span>
             </div>
           </div>
         </div>
       )}
 
       <footer>
-        <a href="https://github.com/comedianhhh">Alan</a> 做的 · 占卜师和 22 张牌都是 <a href="https://github.com/jeremy-prt/bloub">bloub</a>（Jérémy Perret，MIT）。
+        {t.footerMade} <a href="https://github.com/comedianhhh">Alan</a> · {t.footerEngine}{' '}
+        <a href="https://github.com/jeremy-prt/bloub">bloub</a> (Jérémy Perret, MIT).
       </footer>
     </main>
   )

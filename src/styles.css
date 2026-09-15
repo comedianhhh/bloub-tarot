@@ -33,7 +33,10 @@ main { max-width: 720px; margin: 0 auto; }
 header { display: flex; align-items: baseline; justify-content: space-between; margin: 0 0 20px; }
 h1 { font-size: 26px; font-weight: 600; margin: 0; line-height: 1.2; color: var(--ink); }
 h1 .dot { color: var(--ember); }
-header span { font-size: 14px; color: var(--nav); }
+header > span { font-size: 14px; color: var(--nav); display: flex; gap: 14px; align-items: baseline; }
+.lang { display: inline-flex; gap: 2px; }
+.lang button { font-size: 12px; padding: 1px 7px; background: transparent; color: var(--nav); border-color: transparent; border-radius: 4px; }
+.lang button.on { color: var(--ink); border-color: var(--rule); }
 p { margin: 0 0 18px; max-width: 65ch; }
 .muted { color: var(--secondary); }
 a { color: var(--ink); text-decoration: underline; text-decoration-color: var(--rule); text-underline-offset: 3px; }
