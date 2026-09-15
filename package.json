@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview",
-    "deploy": "pnpm build && wrangler deploy"
+    "deploy": "pnpm build && wrangler deploy",
+    "favicon": "node scripts/favicon.mjs"
   },
   "dependencies": {
     "bloub-react": "file:../bloub-react",
