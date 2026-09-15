@@ -18,14 +18,10 @@ pnpm build      # tsc --noEmit && vite build
 
 ## The reading
 
-After the third card, the page asks `/api/reading` for bloub's own reading of
-the spread. That is a Vercel function (`api/reading.ts`) calling Claude
-(`claude-opus-5`, low effort, ~100 characters of Chinese). In dev, Vite serves
-the same handler through `vite.config.ts`.
-
-Set `ANTHROPIC_API_KEY` (see `.env.example`). Without it — or when the API is
-down or refuses — the page shows only the fixed one-line meanings. Nothing
-breaks.
+bloub never answers the question. After the third card it says four or five
+short lines that talk *around* it — a couple of fragments of mist per card, a
+few frames, a dice roll (`src/oracle.ts`). No network, no model, nothing to
+configure; the cryptic tone is the feature.
 
 ## How it's laid out
 
@@ -36,7 +32,7 @@ breaks.
 | `src/Card.tsx` | A card face is a `BloubBot` frozen at `at` seconds, inside a 120×200 SVG frame |
 | `src/cards.ts` | The 22 arcana as `{state, at, shape, expression, react, color}` |
 | `src/export.ts` | The three rendered faces + question → one 1920×1280 PNG |
-| `api/_lib/reading.ts` | The Claude call and its fallback; shared by Vercel and Vite |
+| `src/oracle.ts` | bloub's lines: mist fragments per card, frames, closers |
 
 Type and palette follow leerob.com: a serif reading face, warm greys, one accent
 (the reversed mark). Light and dark both work; card SVGs re-render on theme

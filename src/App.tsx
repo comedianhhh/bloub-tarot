@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { CardBack, CardFace } from './Card'
 import { drawThree, POSITIONS, type Drawn } from './cards'
 import { downloadBlob, spreadToPng } from './export'
-import { fetchReading, type Reading } from './reading'
+import { divine } from './oracle'
 import { REST, Seer, type SeerLook } from './Seer'
 import { useTheme } from './theme'
 
@@ -42,12 +42,12 @@ export default function App() {
     openedRef.current = next
     setOpenedState(next)
   }
-  const [reading, setReading] = useState<Reading | 'loading' | null>(null)
+  // bloub's lines, shown one at a time; 'loading' while it pretends to think
+  const [reading, setReading] = useState<string[] | 'loading' | null>(null)
   const [sheet, setSheet] = useState<{ url: string; blob: Blob } | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
-  const readingAbort = useRef<AbortController | null>(null)
 
   const patch = (p: Partial<SeerLook>) => setLook((l) => ({ ...l, ...p }))
   const askOn = () => {
@@ -78,7 +78,6 @@ export default function App() {
   const ask = (e: FormEvent) => {
     e.preventDefault()
     clear()
-    readingAbort.current?.abort()
     setAsking(false)
     setReading(null)
     setOpened([false, false, false])
@@ -112,11 +111,8 @@ export default function App() {
 
     if (next.every(Boolean)) {
       setReading('loading')
-      const ac = new AbortController()
-      readingAbort.current = ac
-      fetchReading(question, hand, ac.signal).then((r) => {
-        if (!ac.signal.aborted) setReading(r)
-      })
+      const lines = divine(question, hand)
+      lines.forEach((_, i) => later(() => setReading(lines.slice(0, i + 1)), 3400 + i * 1100))
       later(() => {
         setSay('就这些。往下看。')
         setPhase('done')
@@ -127,7 +123,6 @@ export default function App() {
 
   const again = () => {
     clear()
-    readingAbort.current?.abort()
     setReading(null)
     setOpened([false, false, false])
     setPhase('open')
@@ -248,11 +243,13 @@ export default function App() {
             ) : null
           )}
           {reading === 'loading' && <p className="bloub-says muted">bloub 想了想……</p>}
-          {reading && reading !== 'loading' && reading.text && (
-            <p className="bloub-says">
+          {Array.isArray(reading) && (
+            <div className="bloub-says">
               <b>bloub 说：</b>
-              {reading.text}
-            </p>
+              {reading.map((line, i) => (
+                <p key={i}>{line}</p>
+              ))}
+            </div>
           )}
         </div>
       )}

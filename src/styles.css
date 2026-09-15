@@ -108,7 +108,10 @@ button:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } }
 .reading b { font-weight: 600; color: var(--ink); }
 .reading .rev { color: var(--ember); font-size: 14px; }
+.reading > .bloub-says { display: block; }
 .bloub-says { margin: 10px 0 0; padding-top: 14px; border-top: 1px solid var(--rule); animation: rise 0.5s ease both; }
+.bloub-says b { display: block; margin-bottom: 4px; }
+.bloub-says p { margin: 0 0 6px; animation: rise 0.6s ease both; }
 .after { display: flex; gap: 12px; margin-top: 20px; }
 footer { margin-top: 48px; font-size: 14px; color: var(--nav); }
 
