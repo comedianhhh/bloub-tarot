@@ -286,7 +286,7 @@ export default function App() {
       )}
 
       <footer>
-        <a href="https://github.com/jeremy-prt/bloub">bloub</a> by Jérémy Perret · 22 张牌都是它。
+        <a href="https://github.com/comedianhhh">Alan</a> 做的 · 占卜师和 22 张牌都是 <a href="https://github.com/jeremy-prt/bloub">bloub</a>（Jérémy Perret，MIT）。
       </footer>
     </main>
   )
